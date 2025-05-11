@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrada y Salida de Vehículos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> <!-- Íconos -->
+    {% load static %}
+    <style>
+        body {
+            background-color: #c7c7b7; /* Gris claro */
+        }
+        .main-container {
+            background-color: #e1f0f5; /* Azul claro */
+            padding: 50px;
+            border-radius: 15px;
+            width: 150%; /* Aumentar el ancho del recuadro azul */
+            max-width: 1000px; /* Limitar el ancho máximo */
+            margin: 0 auto 50px auto; /* Centrar el recuadro y aumentar el margen inferior */
+            height: 500px; /* Aumentar la altura del recuadro azul */
+            position: relative; /* Necesario para posicionar los elementos dentro del recuadro */
+        }
+        .user-name {
+            font-size: 1.2rem; /* Tamaño del texto */
+            font-weight: bold; /* Texto en negrita */
+            color: #003366; /* Azul oscuro */
+        }
+        .main-container img.logo {
+            position: absolute;
+            top: 2px; /* Subir el logo más arriba */
+            left: 20px; /* Mantener la posición horizontal */
+            width: 210px; /* Hacer el logo más grande */
+            height: auto; /* Mantener la proporción del logo */
+            left: calc(20px + 1.0cm); /* Mover el logo 1 cm a la derecha */
+        }
+        .main-container img.auto-left {
+            position: absolute;
+            left: -50px; /* Colocar la imagen fuera del recuadro azul */
+            top: 50%; /* Centrar verticalmente */
+            transform: translateY(-50%); /* Ajustar el centrado */
+            width: 120px; /* Ajustar el tamaño de la imagen */
+            height: auto; /* Mantener la proporción */
+            left: calc(-50px - 1.2cm);
+        }
+        .main-container img.auto-right {
+            position: absolute;
+            right: -50px; /* Colocar la imagen fuera del recuadro azul */
+            top: 50%; /* Centrar verticalmente */
+            transform: translateY(-50%); /* Ajustar el centrado */
+            width: 120px; /* Ajustar el tamaño de la imagen */
+            height: auto; /* Mantener la proporción */
+            right: calc(-50px - 1.2cm); /* Mover la imagen 1 cm a la derecha */
+        }
+        .card {
+            background-color: #d8d1d1; /* Gris */
+            border-radius: 15px;
+            margin-top: 30px; /* Baja el recuadro gris */
+            padding: 30px; /* Aumentar el espacio interno */
+            width: 100%; /* Hacer que ocupe todo el ancho del contenedor */
+            max-width: 900px; /* Limitar el ancho máximo */
+            margin-left: auto; /* Centrar horizontalmente */
+            margin-right: auto; /* Centrar horizontalmente */
+        }
+        .dropdown-menu {
+            border-radius: 10px; /* Bordes redondeados para el menú desplegable */
+        }
+        .menu-column {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .info-box {
+            background-color: #ffffff; /* Blanco */
+            border: 1px solid #ced4da;
+            border-radius: 10px;
+            padding: 20px; /* Aumentar el espacio interno */
+            text-align: center;
+        }
+        .info-box h3 {
+            font-size: 1.8rem; /* Aumentar el tamaño del texto */
+            font-weight: bold;
+            color: #003366; /* Azul oscuro */
+            margin-bottom: 20px;
+        }
+        .info-box input {
+            background-color: #f1f1f1; /* Gris claro */
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px; /* Aumentar el espacio interno */
+            font-size: 1.5rem; /* Aumentar el tamaño del texto */
+            text-align: center;
+        }
+        .btn {
+            width: 150px; /* Aumentar el ancho de los botones */
+            font-size: 1.2rem; /* Aumentar el tamaño del texto en los botones */
+        }
+        .user-profile {
+            position: absolute;
+            top: 0.5cm; /* Separación desde la parte superior */
+            right: 0.5cm; /* Separación desde el borde derecho */
+            display: flex;
+            align-items: center; /* Alinear verticalmente el nombre y el ícono */
+            gap: 10px; /* Espacio entre el nombre y el ícono */
+        }
+        .user-profile i {
+            margin-left: 10px; /* Espacio entre el nombre y el ícono */
+            font-size: 1.5rem; /* Tamaño del ícono */
+        }
+        .dropdown-toggle {
+            border: black; /* Eliminar bordes del botón */
+            background-color: transparent; /* Fondo transparente */
+            padding: 0; /* Eliminar padding */
+        }
+        .dropdown-toggle i {
+            font-size: 1.5rem; /* Tamaño del ícono */
+            color: #003366; /* Azul oscuro */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="main-container">
+            <!-- Nombre del usuario -->
+            <div class="user-profile">
+                <!-- Nombre del usuario -->
+                <span class="user-name">
+                    {{ request.user.get_full_name|default:request.user.username }}
+                </span>
+                <!-- Ícono de perfil desplegable -->
+                <div class="dropdown d-inline">
+                    <button class="btn btn-light dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item">Cerrar sesión</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- Logo -->
+            <img src="{% static 'parqueadero/img/logo.jpg' %}" alt="Logo" class="logo">
+            <!-- Imagen izquierda -->
+            <img src="{% static 'parqueadero/img/auto1.jpg' %}" alt="Auto Izquierdo" class="auto-left">
+            <!-- Imagen derecha -->
+            <img src="{% static 'parqueadero/img/auto2.jpg' %}" alt="Auto Derecho" class="auto-right">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Menú -->
+                        <div class="col-md-4 menu-column">
+                            <div class="dropdown mb-4">
+                                <button class="btn btn-light dropdown-toggle" type="button" id="menuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-bars"></i> Menú
+                                </button>
+                                <ul class="dropdown-menu" id="menuContent">
+                                    <li><a class="dropdown-item" href="#" onclick="mostrarRegistro()">Registrar entrada y salida de vehículo</a></li>
+                                    {% if request.user.is_authenticated and request.user.is_superuser or request.user.user_type == 'administrador' %}
+                                        <li><a class="dropdown-item" href="{% url 'registrar_empleado' %}">Registrar Empleado</a></li>
+                                    {% endif %}
+                                    {% if request.user.is_authenticated %}
+                                        <li><a class="dropdown-item" href="{% url 'registrar_vehiculo' %}">Agregar Vehículo</a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- Información del vehículo -->
+                        <div class="col-md-8">
+                            <!-- Información del vehículo -->
+                            <div class="info-box">
+                                <h3>Placa</h3>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="text" class="form-control" id="placa" name="placa" placeholder="Ingrese la placa">
+                                    
+                                    <!-- Mensaje dinámico debajo del campo de entrada -->
+                                    {% if mensaje %}
+                                        <div class="alert {% if 'exitoso' in mensaje or 'Salida exitosa' in mensaje %}alert-info{% else %}alert-danger{% endif %} mt-3" role="alert">
+                                            {{ mensaje }}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="mt-3">
+                                        <button type="submit" name="entrada" class="btn btn-success me-2">Entrada</button>
+                                        <button type="submit" name="salida" class="btn btn-danger">Salida</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function mostrarRegistro() {
+            // Mostrar el contenido de registro
+            document.getElementById('registro-contenido').classList.remove('d-none');
+            document.getElementById('registro-contenido').classList.add('d-block');
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
