@@ -25,15 +25,41 @@ class CustomUser(AbstractUser):
     def puede_registrar_propietarios_y_vehiculos(self):
         return self.user_type in ['administrador', 'empleado']
 
+from django.db import models
+
+class Usuario(models.Model):
+    id = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=100)
+    tipo_doc = models.CharField(max_length=20, choices=[
+        ('CC', 'Cédula de Ciudadanía'),
+        ('TI', 'Tarjeta de Identidad'),
+        ('CE', 'Cédula de Extranjería')
+    ])
+    num_doc = models.CharField(max_length=20, unique=True)
+    telefono = models.CharField(max_length=15, blank=True, null=True)
+    correo = models.EmailField(unique=True)
+
+    def __str__(self):
+        return f"{self.nombre} - {self.num_doc}"
+
+
 # Modelo de Vehículo
 class Vehiculo(models.Model):
     id_vehiculo = models.AutoField(primary_key=True)
     placa = models.CharField(max_length=10, unique=True)
-    tipo_vehiculo = models.CharField(max_length=50, choices=[('Carro', 'Carro'), ('Moto', 'Moto'), ('Bicicleta', 'Bicicleta')])
+    tipo_vehiculo = models.CharField(max_length=50, choices=[
+        ('Carro', 'Carro'),
+        ('Moto', 'Moto'),
+        ('Bicicleta', 'Bicicleta')
+    ])
     marca = models.CharField(max_length=50)
     color = models.CharField(max_length=30)
-    propietario = models.CharField(max_length=100, blank=True, null=True)
+    usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE, related_name='vehiculos')
     estado = models.BooleanField(default=False)  # False = "afuera", True = "adentro"
+
+    def save(self, *args, **kwargs):
+        self.placa = self.placa.upper()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.placa} - {self.tipo_vehiculo} ({self.marca}, {self.color})"
@@ -49,13 +75,19 @@ class Celda(models.Model):
 # Modelo de Registro de Asignación ( Vehículo)
 class RegistroAsignacion(models.Model):
     empleado = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='asignaciones', limit_choices_to={'user_type': 'empleado'})
-    usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='clientes', limit_choices_to={'user_type': 'cliente'})
     vehiculo = models.OneToOneField(Vehiculo, on_delete=models.CASCADE)
     celda = models.OneToOneField(Celda, on_delete=models.CASCADE)
     fecha_asignacion = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if not self.celda.disponible:
+            raise ValueError(f"La celda {self.celda.numero} ya está ocupada.")
+        super().save(*args, **kwargs)
+        self.celda.disponible = False
+        self.celda.save()
+
     def __str__(self):
-        return f"Asignación: {self.usuario.nombre} - Vehículo: {self.vehiculo.placa} - Celda: {self.celda.numero}"
+        return f"Asignación: {self.vehiculo.propietario.nombre} - Vehículo: {self.vehiculo.placa} - Celda: {self.celda.numero}"
 
 # Modelo de Registro de Ingreso y Salida
 class RegistroVehiculo(models.Model):

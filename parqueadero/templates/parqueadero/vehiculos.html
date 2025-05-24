@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Vehículos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #c7c7b7;
+            min-height: 100vh;
+        }
+        .main-container {
+            background-color: #e1f0f5;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        .buttons-container {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    {% csrf_token %}
+    <div class="main-container shadow">
+        <h1 class="text-center mb-4">Gestión de Vehículos</h1>
+        
+        <!-- Botones de control -->
+        <div class="buttons-container text-center">
+            <button class="btn btn-primary" onclick="showSection('register')">Registrar nuevo vehículo</button>
+            <button class="btn btn-info" onclick="showSection('list')">Listar vehículos</button>
+            <button class="btn btn-warning" onclick="showSection('search')">Buscar vehículo</button>
+        </div>
+
+        <!-- Sección de Registro -->
+        <div id="register-section" class="section">
+            <h3>Registrar Nuevo Vehículo</h3>
+            <form id="vehicle-form">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </form>
+        </div>
+
+        <!-- Sección de Lista -->
+        <div id="list-section" class="section">
+            <h3>Lista de Vehículos</h3>
+            <div id="vehicles-list">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Marca</th>
+                            <th>Propietario</th>
+                            <th>Celda</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vehicles-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sección de Búsqueda -->
+        <div id="search-section" class="section">
+            <h3>Buscar Vehículo</h3>
+            <div class="input-group mb-3">
+                <input type="text" id="search-input" class="form-control" placeholder="Buscar por placa o propietario...">
+                <button class="btn btn-outline-secondary" type="button" onclick="searchVehicles()">Buscar</button>
+            </div>
+            <div id="search-results"></div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Volver al Dashboard</a>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function showSection(sectionId) {
+            $('.section').removeClass('active');
+            $(`#${sectionId}-section`).addClass('active');
+            if(sectionId === 'list') {
+                loadVehicles();
+            }
+        }
+
+        function loadVehicles() {
+            $.ajax({
+                url: '?action=list',
+                type: 'GET',
+                success: function(data) {
+                    let html = '';
+                    if (data.vehiculos && data.vehiculos.length > 0) {
+                        data.vehiculos.forEach(vehicle => {
+                            html += `<tr>
+                                <td>${vehicle.placa}</td>
+                                <td>${vehicle.marca}</td>
+                                <td>${vehicle.propietario}</td>
+                                <td>${vehicle.celda}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteVehicle(${vehicle.id})">Eliminar</button>
+                                </td>
+                            </tr>`;
+                        });
+                    } else {
+                        html = '<tr><td colspan="5" class="text-center">No hay vehículos registrados</td></tr>';
+                    }
+                    $('#vehicles-table-body').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    alert('Error al cargar los vehículos');
+                }
+            });
+        }
+
+        function searchVehicles() {
+            const query = $('#search-input').val();
+            $.ajax({
+                url: `?action=search&query=${query}`,
+                type: 'GET',
+                success: function(data) {
+                    let html = '<table class="table"><thead><tr><th>Placa</th><th>Marca</th><th>Propietario</th><th>Celda</th><th>Acciones</th></tr></thead><tbody>';
+                    if (data.vehiculos && data.vehiculos.length > 0) {
+                        data.vehiculos.forEach(vehicle => {
+                            html += `<tr>
+                                <td>${vehicle.placa}</td>
+                                <td>${vehicle.marca}</td>
+                                <td>${vehicle.propietario}</td>
+                                <td>${vehicle.celda}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteVehicle(${vehicle.id})">Eliminar</button>
+                                </td>
+                            </tr>`;
+                        });
+                    } else {
+                        html += '<tr><td colspan="5" class="text-center">No se encontraron vehículos</td></tr>';
+                    }
+                    html += '</tbody></table>';
+                    $('#search-results').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    alert('Error al buscar vehículos');
+                }
+            });
+        }
+
+        function deleteVehicle(id) {
+            if (confirm('¿Está seguro de que desea eliminar este vehículo?')) {
+                $.ajax({
+                    url: `?id=${id}`,
+                    type: 'DELETE',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-CSRFToken', $('[name=csrfmiddlewaretoken]').val());
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            alert('Vehículo eliminado exitosamente');
+                            loadVehicles();
+                        } else {
+                            alert(response.message || 'Error al eliminar el vehículo');
+                        }
+                    }
+                });
+            }
+        }
+
+        $('#vehicle-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '',
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    if(response.status === 'success') {
+                        alert('Vehículo registrado exitosamente');
+                        $('#vehicle-form')[0].reset();
+                        showSection('list');
+                    } else {
+                        alert('Error al registrar vehículo');
+                    }
+                }
+            });
+        });
+
+        // Mostrar sección de registro por defecto
+        showSection('register');
+    </script>
+</body>
+</html>

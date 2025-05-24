@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Empleados</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #c7c7b7;
+            min-height: 100vh;
+        }
+        .main-container {
+            background-color: #e1f0f5;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        .buttons-container {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container shadow">
+        <h1 class="text-center mb-4">Gestión de Empleados</h1>
+        
+        <!-- Botones de control -->
+        <div class="buttons-container text-center">
+            <button class="btn btn-primary" onclick="showSection('register')">Registrar nuevo empleado</button>
+            <button class="btn btn-info" onclick="showSection('list')">Listar empleados</button>
+            <button class="btn btn-warning" onclick="showSection('search')">Buscar empleado</button>
+        </div>
+
+        <!-- Sección de Registro -->
+        <div id="register-section" class="section">
+            <h3>Registrar Nuevo Empleado</h3>
+            <form id="employee-form">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </form>
+        </div>
+
+        <!-- Sección de Lista -->
+        <div id="list-section" class="section">
+            <h3>Lista de Empleados</h3>
+            <div id="employees-list">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employees-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sección de Búsqueda -->
+        <div id="search-section" class="section">
+            <h3>Buscar Empleado</h3>
+            <div class="input-group mb-3">
+                <input type="text" id="search-input" class="form-control" placeholder="Buscar por nombre o usuario...">
+                <button class="btn btn-outline-secondary" type="button" onclick="searchEmployees()">Buscar</button>
+            </div>
+            <div id="search-results"></div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Volver al Dashboard</a>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function showSection(sectionId) {
+            $('.section').removeClass('active');
+            $(`#${sectionId}-section`).addClass('active');
+            if(sectionId === 'list') {
+                loadEmployees();
+            }
+        }
+
+        function loadEmployees() {
+            $.get('?action=list', function(data) {
+                let html = '';
+                data.empleados.forEach(emp => {
+                    html += `<tr>
+                        <td>${emp.username}</td>
+                        <td>${emp.first_name} ${emp.last_name}</td>
+                        <td>${emp.email}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEmpleado(${emp.id})">Eliminar</button>
+                        </td>
+                    </tr>`;
+                });
+                $('#employees-table-body').html(html);
+            });
+        }
+
+        function searchEmployees() {
+            const query = $('#search-input').val();
+            $.get(`?action=search&query=${query}`, function(data) {
+                let html = '<table class="table"><thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Acciones</th></tr></thead><tbody>';
+                data.empleados.forEach(emp => {
+                    html += `<tr>
+                        <td>${emp.username}</td>
+                        <td>${emp.first_name} ${emp.last_name}</td>
+                        <td>${emp.email}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEmpleado(${emp.id})">Eliminar</button>
+                        </td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                $('#search-results').html(html);
+            });
+        }
+
+        function deleteEmpleado(id) {
+            if (confirm('¿Está seguro de que desea eliminar este empleado?')) {
+                $.ajax({
+                    url: `?id=${id}`,
+                    type: 'DELETE',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-CSRFToken', $('[name=csrfmiddlewaretoken]').val());
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            alert('Empleado eliminado exitosamente');
+                            loadEmployees();
+                        } else {
+                            alert(response.message || 'Error al eliminar el empleado');
+                        }
+                    }
+                });
+            }
+        }
+
+        $('#employee-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '',
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    if(response.status === 'success') {
+                        alert('Empleado registrado exitosamente');
+                        $('#employee-form')[0].reset();
+                        showSection('list');
+                    } else {
+                        alert('Error al registrar empleado');
+                    }
+                }
+            });
+        });
+
+        // Mostrar sección de registro por defecto
+        showSection('register');
+    </script>
+</body>
+</html>
