@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pagos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #c7c7b7;
+            min-height: 100vh;
+        }
+        .main-container {
+            background-color: #e1f0f5;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px auto;
+            max-width: 1000px;
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        .al-dia {
+            background-color: #d4edda !important;
+        }
+        .moroso {
+            background-color: #f8d7da !important;
+        }
+        .resultado-busqueda {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    {% csrf_token %}
+    <div class="main-container shadow">
+        <h1 class="text-center mb-4">Gestión de Pagos</h1>
+        
+        <!-- Botones de control -->
+        <div class="buttons-container text-center mb-4">
+            <button class="btn btn-primary" onclick="showSection('buscar')">Registrar Pago</button>
+            <button class="btn btn-info" onclick="showSection('historial')">Estado de Pagos</button>
+        </div>
+
+        <!-- Sección de Búsqueda y Registro -->
+        <div id="buscar-section" class="section">
+            <h3>Buscar Vehículo</h3>
+            <div class="input-group mb-3">
+                <input type="text" id="placa-input" class="form-control" placeholder="Ingrese la placa del vehículo">
+                <button class="btn btn-outline-primary" type="button" onclick="buscarVehiculo()">Buscar</button>
+            </div>
+            <div id="resultado-busqueda" class="resultado-busqueda" style="display: none;">
+                <!-- Aquí se mostrará el resultado de la búsqueda -->
+            </div>
+        </div>
+
+        <!-- Sección de Historial -->
+        <div id="historial-section" class="section">
+            <h3>Estado de Pagos de Vehículos</h3>
+            <div class="mb-3">
+                <span class="badge bg-success">■</span> Al día
+                <span class="badge bg-danger ms-2">■</span> Moroso
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Propietario</th>
+                            <th>Estado</th>
+                            <th>Último Pago</th>
+                            <th>Vence</th>
+                            <th>Meses Mora</th>
+                            <th>Monto Adeudado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historial-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Volver al Dashboard</a>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function showSection(sectionId) {
+            $('.section').removeClass('active');
+            $(`#${sectionId}-section`).addClass('active');
+            if(sectionId === 'historial') {
+                cargarHistorial();
+            }
+        }
+
+        function buscarVehiculo() {
+            const placa = $('#placa-input').val().trim();
+            if (!placa) {
+                alert('Por favor ingrese una placa');
+                return;
+            }
+
+            $.get(`?action=buscar_vehiculo&placa=${placa}`, function(response) {
+                const resultadoDiv = $('#resultado-busqueda');
+                if (response.status === 'success') {
+                    const estadoClase = response.esta_al_dia ? 'alert-success' : 'alert-danger';
+                    const estadoTexto = response.esta_al_dia ? 'Al día' : 'Moroso';
+                    
+                    let html = `
+                        <div class="alert ${estadoClase}">
+                            <h4 class="alert-heading">${estadoTexto}</h4>
+                            <p><strong>Placa:</strong> ${response.placa}</p>
+                            <p><strong>Propietario:</strong> ${response.propietario}</p>
+                            <p><strong>Fecha de vencimiento:</strong> ${response.fecha_vencimiento}</p>`;
+            
+            if (!response.esta_al_dia) {
+                html += `<p><strong>Meses en mora:</strong> ${response.meses_mora}</p>`;
+            }
+            
+            html += `
+                    <p><strong>Monto a pagar:</strong> $${response.monto_a_pagar.toLocaleString()}</p>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <label>Meses a pagar:</label>
+                            <input type="number" id="meses-pago" class="form-control" value="1" min="1">
+                        </div>
+                        <button class="btn btn-success" onclick="registrarPago('${response.vehiculo_id}')">
+                            Registrar Pago
+                        </button>
+                    </div>
+                </div>`;
+            
+                    resultadoDiv.html(html).show();
+                } else {
+                    resultadoDiv.html(`
+                        <div class="alert alert-warning">
+                            ${response.message}
+                        </div>
+                    `).show();
+                }
+            });
+        }
+
+        function registrarPago(vehiculoId) {
+            const meses = $('#meses-pago').val();
+            const monto = 45000 * meses;
+
+            $.ajax({
+                url: '?action=registrar_pago',
+                type: 'POST',
+                data: {
+                    vehiculo_id: vehiculoId,
+                    meses: meses,
+                    monto: monto,
+                    csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert('Pago registrado exitosamente');
+                        $('#resultado-busqueda').hide();
+                        $('#placa-input').val('');
+                    } else {
+                        alert('Error al registrar el pago: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function cargarHistorial() {
+            $.get('?action=historial', function(data) {
+                let html = '';
+                data.vehiculos.forEach(vehiculo => {
+                    const rowClass = vehiculo.esta_al_dia ? 'al-dia' : 'moroso';
+                    html += `
+                        <tr class="${rowClass}">
+                            <td>${vehiculo.placa}</td>
+                            <td>${vehiculo.propietario}</td>
+                            <td>${vehiculo.esta_al_dia ? 'Al día' : 'Moroso'}</td>
+                            <td>${vehiculo.ultimo_pago}</td>
+                            <td>${vehiculo.fecha_vencimiento}</td>
+                            <td>${vehiculo.meses_mora}</td>
+                            <td>$${vehiculo.monto_adeudado.toLocaleString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" 
+                                        onclick="prepararPago('${vehiculo.placa}')">
+                                    Registrar Pago
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+                $('#historial-body').html(html);
+            });
+        }
+
+        function prepararPago(placa) {
+            showSection('buscar');
+            $('#placa-input').val(placa);
+            buscarVehiculo();
+        }
+
+        // Mostrar sección de búsqueda por defecto
+        showSection('buscar');
+    </script>
+</body>
+</html>

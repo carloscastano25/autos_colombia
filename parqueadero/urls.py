@@ -5,6 +5,7 @@ from .views_empleados import empleados_view
 from .views_vehiculos import vehiculos_view
 from .views_usuarios import  usuarios_view
 from .views_celdas import celdas_view
+from .views_pagos import pagos_view
 
 
 urlpatterns = [
@@ -18,4 +19,5 @@ urlpatterns = [
     # URLs existentes
     path('vehiculos/', vehiculos_view, name='vehiculos'),
     path('celdas/', celdas_view, name='celdas'),
+    path('pagos/', pagos_view, name='pagos'),
 ]
